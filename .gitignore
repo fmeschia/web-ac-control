@@ -1,0 +1,8 @@
+gateway/node_modules
+gateway/node_modules/**
+gateway/log
+gateway/log/**
+gateway/pid
+gateway/pid/**
+gateway/config.js
+

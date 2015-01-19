@@ -1,0 +1,86 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Amato - Meschia Home Gateway</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+  </head>
+  <body>
+	<div class="container-fluid">
+		<div class="row">
+		</div>
+	    <div class="row">
+			<div class="col-md-6">
+				<div id="graphdiv"></div>
+			</div>
+		</div>
+		<div class="row"><hr></div>
+	    <div class="row">
+			<div class="col-md-1 col-sm-2 col-xs-3">
+		   	 	<button type="button" id="turnon" class="btn btn-danger">Turn On</button>
+			</div>
+			<div class="col-md-1 col-sm-2 col-xs-3">
+		   		<button type="button" id="turnoff" class="btn btn-primary">Turn Off</button>
+			</div>
+			<div class="col-md-2 col-sm-4 col-xs-6">
+		   	 	<button type="button" id="temp" class="btn btn-info">Read temp</button>
+				<span id="tempreadout"></span>
+			</div>
+		   <!--
+	       <a id="turnon" class="btn btn-default" href=""="button" value="Turn ON">
+		   <input id="turnoff" class="btn btn-default" type="button" value="Turn OFF">
+		   <input id="temp" class="btn btn-default" type="button" value="Read temp">
+		   
+			   -->
+	    </div>
+			  </div>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.0/dygraph-combined.js"></script>
+    <script type="text/javascript">
+      var socket = io.connect();
+      $('#turnon').click(function(){
+        socket.emit('turnon');
+		$(this).removeClass('active');
+      });
+      $('#turnoff').click(function(){
+        socket.emit('turnoff');
+		$(this).removeClass('active');
+      });
+	  $('#temp').click(function(){
+	     socket.emit('readtemp');
+		 $(this).removeClass('active');
+	  });
+	  socket.on('tempreadout', function(msg){
+	          $('#tempreadout').text(msg + ' F');
+	        });
+    </script>
+	
+	<script type="text/javascript">
+			g = new Dygraph(
+			    // containing div
+			    document.getElementById("graphdiv"),
+				"tempdata.csv",
+				{
+					title: 'Temperature over the last 24 hours',
+					xlabel: 'Time',
+					ylabel: 'Temperature [F]',
+				    rollPeriod: 7,
+				    showRoller: false,
+					axes: {
+						x: {
+							drawAxis: true,
+							drawGrid: true
+						},
+						y: {
+							drawAxis: true, 
+							drawGrid: true
+						}
+					}
+				}
+			  );
+			</script>
+		
+  </body>
+</html>

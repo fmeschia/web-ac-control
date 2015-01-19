@@ -1,0 +1,17 @@
+var config = {};
+
+config.database = {};
+config.middleware = {};
+config.ssl = {};
+
+config.database.host = 'localhost';
+config.database.db = 'temp';
+config.database.user = 'temp';
+config.database.password = 'password';
+
+config.middleware.secret = 'secret';
+
+config.ssl.certificate = '/root/crypto/cert.cer'
+config.ssl.privatekey = '/root/crypto/privkey.pem'
+
+module.exports = config;
