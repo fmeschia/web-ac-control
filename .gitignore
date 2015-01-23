@@ -5,4 +5,4 @@ gateway/log/**
 gateway/pid
 gateway/pid/**
 gateway/config.js
-
+gateway/passwords.json

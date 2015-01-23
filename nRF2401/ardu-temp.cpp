@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 	} while (timeout && ntries++ < 5);
 	if (!timeout) {
 	  	radio.read();
-	  	int temp = (int)radio.data[0] << 8 | (int)radio.data[1];
+	  	int temp = ((uint16_t)radio.data[0]) << 4 | ((uint16_t)radio.data[1]) >> 4;
 	  	std::cout << temp << std::endl;
     } else {
 		std::cout << "Timeout" << std::endl;

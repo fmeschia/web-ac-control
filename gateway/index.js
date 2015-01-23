@@ -16,6 +16,8 @@ var options = {
 	 cert: fs.readFileSync(config.ssl.certificate)
 };
 
+var passwords = JSON.parse(fs.readFileSync(__dirname+'/passwords.json', 'utf8'));
+
 var server=https.createServer(options, app);
 var serverhttp = http.createServer(httpapp);
 
@@ -44,12 +46,12 @@ app.use(function(req, res, next) {
     var user = auth(req);
 	var logger = log4js.getLogger();
 	var authenticated = 0;
-	if (user !== undefined) {
-		if (user['name'] === 'user1' && user['pass'] === '********') {
+	if (user !== undefined && 
+		user['name'] !== undefined && user['name'] !== '' &&
+	    user['pass'] !== undefined && user['pass'] !== '') {
+		if (user['pass'] === passwords[user['name']]) {
 			authenticated = 1;
-		} else if (user['name'] === 'user2' && user['pass'] === '********') {
-			authenticated = 1;
-		}  else {}
+		} else {
 			logger.warn('Unauthenticated user '+user['name']);
 		}
 	}
@@ -81,7 +83,7 @@ app.get('/tempdata.csv', function(req,res) {
 	var query = 'SELECT date, temp FROM temperature where TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) < 86400';
 	connection.query(query, function(err, rows, fields) {	
 		for (var i=0; i<rows.length; i++) {
-			csv += rows[i].date + "," + (parseFloat(rows[i].temp)*1.8+32.0) + "\n";
+			csv += rows[i].date + "," + (parseFloat(rows[i].temp)*1.8+32.0) + '\n';
 		}
 		res.send(csv);
 	});
