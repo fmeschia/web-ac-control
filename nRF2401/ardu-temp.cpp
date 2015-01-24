@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ctime>
+#include <cmath>
 #include <stdlib.h>
 #include <cstring>
 #include <sys/mman.h>
@@ -44,7 +45,7 @@ int main(int argc, char* argv[])
 	} while (timeout && ntries++ < 5);
 	if (!timeout) {
 	  	radio.read();
-	  	int temp = ((uint16_t)radio.data[0]) << 4 | ((uint16_t)radio.data[1]) >> 4;
+	  	float temp = ((((uint16_t)radio.data[0]) << 4 | ((uint16_t)radio.data[1]) >> 4)*0.625)/10.0;
 	  	std::cout << temp << std::endl;
     } else {
 		std::cout << "Timeout" << std::endl;

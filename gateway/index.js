@@ -112,7 +112,7 @@ io.on('connection', function(socket){
   	socket.on('readtemp', function(msg){
   		logger.info('Reading temperature');
 		exec.execFile(__dirname+ '/../nRF2401/ardu-temp', [], function(error, stdout, stderr) {
-			var temp = Math.round(parseFloat(stdout) * 1.8 + 320) / 10.0;
+			var temp = Math.round(parseFloat(stdout) * 18 + 320)/10;
 			logger.debug('Temperature = ' + temp + " F");
 			socket.emit("tempreadout",temp);
 		});

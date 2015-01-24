@@ -13,7 +13,7 @@ function finished(error, stdout, stderr) {
 	});
 	connection.connect();
 	//console.log(stdout);
-	temp = parseFloat(stdout) / 10.0;
+	temp = parseFloat(stdout);
 	console.log('temp = '+temp);
 	if (isNaN(temp)) temp = null;
 	var record = {date: new Date(), temp:temp};
