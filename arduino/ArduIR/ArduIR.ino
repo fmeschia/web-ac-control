@@ -32,8 +32,8 @@ void setup()
   byte secondbyte     = (Wire.read());
     Serial.print(F("CFG ")); Serial.print(firstbyte, HEX); Serial.print(F(" ")); Serial.println(secondbyte, HEX);
 #endif
-  radio.localAddress = 1;
-  radio.remoteAddress = 2;
+  radio.localAddress = 0xAAAA;
+  radio.remoteAddress = 0xCCCC;
   radio.power = 3;
   radio.dataRate = 0;
   radio.rxMode(5);
@@ -92,13 +92,16 @@ void loop() {
     else
       digitalWrite(13, 0);
   } else if (radio.data[0] == 2) {
-    radio.txMode(2);
+    radio.txMode(5);
     digitalWrite(13, 1);
     delay(100);
     digitalWrite(13,0);
     getTemp102();
     radio.data[0] = firstbyte;
     radio.data[1] = secondbyte;
+    radio.data[2] = 0xAA;
+    radio.data[3] = 0xAA;
+    radio.data[4] = 0xAA;
     //radio.data[0]=(uint16_t)(correctedtemp*10) >> 8;
     //radio.data[1]=(uint16_t)(correctedtemp*10) & 0x00ff;
 #ifdef DEBUG
