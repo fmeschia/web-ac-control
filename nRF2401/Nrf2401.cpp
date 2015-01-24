@@ -43,7 +43,7 @@ Nrf2401::Nrf2401(void)
   power = 3;
   mode = 0;
   
-  configuration[7] = 234;
+  configuration[7] = 234; // 3 most significant bytes of the address
   configuration[8] = 223;
   configuration[9] = 212;
   
@@ -120,11 +120,11 @@ bool Nrf2401::available(void)
 
 void Nrf2401::configure(void)
 {
-  configuration[1] = payloadSize << 3;
+  configuration[1] = payloadSize << 3; // payloadSize is bytes; ASL 3 times = x8 (=bits)
   configuration[10] = localAddress >> 8;
   configuration[11] = localAddress;
-  configuration[12] = 163;
-  configuration[13] = power | (dataRate << 5) | 76;
+  configuration[12] = 163; // 163 = CRC enabled, 16-bit CRC, 40-bit address
+  configuration[13] = power | (dataRate << 5) | 76; // 76 = 16 MHz Xtal, ShockBurst mdoe
   configuration[14] = mode | (channel << 1);
   loadConfiguration();
 }
