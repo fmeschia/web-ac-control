@@ -2,22 +2,30 @@
 #include <IRremote.h>
 #include <IRremoteInt.h>
 #include <Wire.h>
-#include "Nrf2401.h"
+#include <SPI.h>
+#include <RF24.h>
+#include <printf.h>
 
-Nrf2401 radio;
+RF24 radio(9,10);
 IRsend irsend;
 float correctedtemp;
 unsigned long message;
 uint8_t firstbyte, secondbyte;
-  
+uint8_t buffer[6];
+
+const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
+
+#define DEBUG
+
 #define TMP102_I2C_ADDRESS 72
 #define TIMEOUT_MILLIS 100L
-#define DEBUG
+#define LED_PIN 8
 
 void setup()
 {
-  pinMode(13, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(9600); 
+  printf_begin();
   Wire.begin();
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
   Wire.write(0x01); // write to config registry
@@ -32,11 +40,16 @@ void setup()
   byte secondbyte     = (Wire.read());
     Serial.print(F("CFG ")); Serial.print(firstbyte, HEX); Serial.print(F(" ")); Serial.println(secondbyte, HEX);
 #endif
-  radio.localAddress = 0xAAAA;
-  radio.remoteAddress = 0xCCCC;
-  radio.power = 3;
-  radio.dataRate = 0;
-  radio.rxMode(5);
+  radio.begin();
+  radio.setRetries(15,15);
+  //radio.setDataRate(RF24_250KBPS);
+  radio.setPayloadSize(5);
+  radio.openWritingPipe(pipes[1]);
+  radio.openReadingPipe(1,pipes[0]);
+  radio.startListening();
+#ifdef DEBUG
+  radio.printDetails();
+#endif
 }
 
 void getTemp102(){
@@ -73,41 +86,41 @@ void getTemp102(){
 
 void loop() {
   while (!radio.available());
-  radio.read();
-  Serial.print((int)radio.data[0]); 
+  radio.read(buffer, 5);
+  Serial.print((int)buffer[0]); 
 #ifdef DEBUG
-  Serial.print(F(" - ")); Serial.print((int)radio.data[1],HEX);
-  Serial.print(F(" - ")); Serial.print((int)radio.data[2],HEX); 
-  Serial.print(F(" - ")); Serial.print((int)radio.data[3],HEX);
-  Serial.print(F(" - ")); Serial.print((int)radio.data[4],HEX);
+  Serial.print(F(" - ")); Serial.print((int)buffer[1],HEX);
+  Serial.print(F(" - ")); Serial.print((int)buffer[2],HEX); 
+  Serial.print(F(" - ")); Serial.print((int)buffer[3],HEX);
+  Serial.print(F(" - ")); Serial.print((int)buffer[4],HEX);
 #endif
   Serial.println();
-  if (radio.data[0] == 1) {
-    message = ((uint32_t)radio.data[1] << 24) | ((uint32_t)radio.data[2] << 16) | 
-      ((uint32_t)radio.data[3] << 8) | ((uint32_t)radio.data[4]);
+  if (buffer[0] == 1) {
+    message = ((uint32_t)buffer[1] << 24) | ((uint32_t)buffer[2] << 16) | 
+      ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[4]);
     //Serial.println(message, HEX);
     irsend.sendWhynter(message,32);
     if (message == 0x8c002aa5) 
-      digitalWrite(13, 1);
+      digitalWrite(LED_PIN, 1);
     else
-      digitalWrite(13, 0);
-  } else if (radio.data[0] == 2) {
-    radio.txMode(5);
-    digitalWrite(13, 1);
+      digitalWrite(LED_PIN, 0);
+  } else if (buffer[0] == 2) {
+    radio.stopListening();
+    digitalWrite(LED_PIN, 1);
     delay(100);
-    digitalWrite(13,0);
+    digitalWrite(LED_PIN,0);
     getTemp102();
-    radio.data[0] = firstbyte;
-    radio.data[1] = secondbyte;
-    radio.data[2] = 0xAA;
-    radio.data[3] = 0xAA;
-    radio.data[4] = 0xAA;
+    buffer[0] = firstbyte;
+    buffer[1] = secondbyte;
+    buffer[2] = 0xAA;
+    buffer[3] = 0xAA;
+    buffer[4] = 0xAA;
     //radio.data[0]=(uint16_t)(correctedtemp*10) >> 8;
     //radio.data[1]=(uint16_t)(correctedtemp*10) & 0x00ff;
 #ifdef DEBUG
-     Serial.print(F("RTMP ")); Serial.print(radio.data[0], HEX); Serial.print(' '); Serial.println(radio.data[1], HEX);
+     Serial.print(F("RTMP ")); Serial.print(buffer[0], HEX); Serial.print(' '); Serial.println(buffer[1], HEX);
 #endif
-    radio.write();
-    radio.rxMode(5);
+    radio.write(buffer, 5);
+    radio.startListening();
   }
 }
