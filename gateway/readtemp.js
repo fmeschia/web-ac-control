@@ -12,11 +12,15 @@ function finished(error, stdout, stderr) {
 	  password : config.database.password
 	});
 	connection.connect();
-	//console.log(stdout);
+	console.log('raw stdout = '+stdout);
 	temp = parseFloat(stdout);
-	console.log('temp = '+temp);
-	if (isNaN(temp)) temp = null;
+	console.log('temp       = '+temp);
+	if (isNaN(temp)) {
+		console.error((new Date()) + ' - raw stdout = '+stdout);
+		temp = null;
+	}
 	var record = {date: new Date(), temp:temp};
-	var query = connection.query('INSERT INTO temperature SET ?', record);
+	connection.query('INSERT INTO temperature SET ?', record);
+    connection.query('DELETE temperature WHERE TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) > 7*86400');
 	connection.end();
 }
