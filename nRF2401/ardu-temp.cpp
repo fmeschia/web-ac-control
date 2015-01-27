@@ -74,6 +74,11 @@ int main(int argc, char* argv[])
 #ifdef DEBUG
 				cout << "Available" << endl;
 #endif
+				radio.read(buffer, 5);
+#ifdef DEBUG
+				cout << "Read" << endl;
+				std::cout << (int)buffer[0] << " - " << (int)buffer[1] << " - " << (int)buffer[2] << " - " << (int)buffer[3] << " - " << (int)buffer[4] << std::endl;
+#endif
 				done = 1;
 			}
 			/*
@@ -89,19 +94,14 @@ int main(int argc, char* argv[])
 			*/
 			timeout = ((time(0)-time0) * 1000.0 > TIMEOUT_MS);
 		} while (!done && !timeout);
+		radio.stopListening();
 	} while (!done && ntries++ < MAX_TRIES);
 	if (done) {
-		radio.read(buffer, 5);
-#ifdef DEBUG
-		cout << "Read" << endl;
-		std::cout << (int)buffer[0] << " - " << (int)buffer[1] << " - " << (int)buffer[2] << " - " << (int)buffer[3] << " - " << (int)buffer[4] << std::endl;
-#endif
-				float temp = ((((uint16_t)buffer[0]) << 4 | ((uint16_t)buffer[1]) >> 4)*0.625)/10.0;
-	  	std::cout << temp << std::endl;
+		float temp = ((((uint16_t)buffer[0]) << 4 | ((uint16_t)buffer[1]) >> 4)*0.625)/10.0;
+		std::cout << temp << std::endl;
     } else {
 		std::cout << "Timeout" << std::endl;
     }
-	radio.stopListening();
     radio.powerDown();
     return 0;
 }
