@@ -49,6 +49,7 @@
 		$(this).removeClass('active');
       });
 	  $('#temp').click(function(){
+             $('#tempreadout').text('');
 	     socket.emit('readtemp');
 		 $(this).removeClass('active');
 	  });
