@@ -21,6 +21,6 @@ function finished(error, stdout, stderr) {
 	}
 	var record = {date: new Date(), temp:temp};
 	connection.query('INSERT INTO temperature SET ?', record);
-    connection.query('DELETE temperature WHERE TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) > 7*86400');
+    connection.query('DELETE FROM temperature WHERE TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) > 7*86400');
 	connection.end();
 }
