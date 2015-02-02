@@ -6,3 +6,8 @@ gateway/pid
 gateway/pid/**
 gateway/config.js
 gateway/passwords.json
+nRF2401/ardu-ir
+nRF2401/ardu-temp
+nRF2401/Nrf2401
+nRF2401/key.txt
+nRF2401/sequence.txt

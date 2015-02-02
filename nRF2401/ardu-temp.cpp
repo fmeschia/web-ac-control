@@ -12,6 +12,7 @@ using namespace std;
 #undef DEBUG
 //#define DEBUG
 
+#define TEMP_OFFSET_C -1.65
 #define MAX_TRIES 5
 #define TIMEOUT_MS 1000.0
 
@@ -40,7 +41,7 @@ int main(int argc, char* argv[])
 	//delay(10);
 	radio.setRetries(15,15);
 	//radio.setDataRate(RF24_250KBPS);
-	radio.setPayloadSize(5);
+	//radio.setPayloadSize(5);
     radio.openWritingPipe(pipes[0]);
     radio.openReadingPipe(1,pipes[1]);
 #ifdef DEBUG
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 		radio.stopListening();
 	} while (!done && ntries++ < MAX_TRIES);
 	if (done) {
-		float temp = ((((uint16_t)buffer[0]) << 4 | ((uint16_t)buffer[1]) >> 4)*0.625)/10.0;
+		float temp = ((((uint16_t)buffer[0]) << 4 | ((uint16_t)buffer[1]) >> 4)*0.0625)+TEMP_OFFSET_C;
 		std::cout << temp << std::endl;
     } else {
 		std::cout << "Timeout" << std::endl;
