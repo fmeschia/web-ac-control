@@ -25,17 +25,19 @@ int main(int argc, char* argv[])
 	ssize_t pathsize = readlink("/proc/self/exe", basepath, 500);
 	basepath[pathsize] = 0;
 	*strrchr(basepath,'/') = 0; // strip executable name
-	std::cout<<"Basepath "<<basepath<<std::endl;
+#ifdef DEBUG
+	std::cout << "Basepath " << basepath << std::endl;
+#endif
 	uint32_t code = strtoul(argv[1],NULL,16);
 	unsigned long sequence;
 	uint32_t key_lo, key_hi;
 	std::fstream myfile;
 	myfile.open(strcat(basepath,"/sequence.txt"));
-	myfile>>sequence;
+	myfile >> sequence;
 	myfile.close();
 	*strrchr(basepath,'/') = 0; // strip /sequence.txt
 #ifdef DEBUG
-	std::cout<<"Sequence "<<std::dec<<sequence<<std::endl;
+	std::cout << "Sequence " << std::dec << sequence << std::endl;
 #endif
 	myfile.open(strcat(basepath,"/key.txt"));
 	myfile >> std::hex >> key_lo;
@@ -43,7 +45,7 @@ int main(int argc, char* argv[])
 	myfile.close();
 	*strrchr(basepath,'/') = 0; // strip /key.txt
 #ifdef DEBUG
-	std::cout<<"Key "<<std::hex<<key_lo<<" "<<key_hi<<std::hex<<std::endl;
+	std::cout << "Key " << std::hex << key_lo << " " << std::hex << key_hi << std::endl;
 #endif
 	Keeloq k(key_lo,key_hi);
 	RF24 radio(RPI_BPLUS_GPIO_J8_22,RPI_BPLUS_GPIO_J8_24, BCM2835_SPI_SPEED_4MHZ);
@@ -70,7 +72,7 @@ int main(int argc, char* argv[])
 	//std::cout << "sizeof(unsigned long) is " << sizeof(code) << " bytes " << std::endl;
 	radio.powerDown();
 	myfile.open (strcat(basepath,"/sequence.txt"), std::fstream::out | std::fstream::trunc);
-	myfile<<std::dec<<sequence+1<<std::endl;
+	myfile << std::dec << (sequence+1) << std::endl;
 	myfile.close();
     return 0;
 }
