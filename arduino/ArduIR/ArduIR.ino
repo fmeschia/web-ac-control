@@ -1,3 +1,24 @@
+/*****
+
+Web A/C Remote Control - the Arduino remote
+by Francesco Meschia
+
+This code runs on the ATmega328 that controls the A/C unit.
+The main program loop waits for data to be available on either
+the serial stream or the nRF24L01+ radio stream.
+
+The commands which can be sent via the radio channel are:
+- send IR code to A/C
+- read back via radio the temperature from TMP102 TWI sensor
+
+Since sending IR codes means changing the state of a physical
+external device, the message must be "authenticated" by using
+an encrypted rolling code. The 64-bit cryptographic key and the
+sequence seed can be changed by sending, respectively, a 
+"k <low 32 bits of the key, HEX> <high 32 bits of the key, HEX>"
+or a "s <sequence seed, DEC>" command over the serial link. 
+
+*****/
 
 #include <IRremote.h>
 #include <IRremoteInt.h>
@@ -21,7 +42,7 @@
 RF24 radio(9,10);
 IRsend irsend;
 float correctedtemp;
-unsigned long message;
+uint32_t message;
 uint32_t encSequenceNumber;
 uint32_t decSequenceNumber;
 uint32_t sequenceNumber;
@@ -197,8 +218,6 @@ void loop() {
       buffer[2] = 0xAA;
       buffer[3] = 0xAA;
       buffer[4] = 0xAA;
-      //radio.data[0]=(uint16_t)(correctedtemp*10) >> 8;
-      //radio.data[1]=(uint16_t)(correctedtemp*10) & 0x00ff;
   #ifdef DEBUG
        Serial.print(F("RTMP ")); Serial.print(buffer[0], HEX); Serial.print(' '); Serial.println(buffer[1], HEX);
   #endif
