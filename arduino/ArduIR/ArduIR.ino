@@ -198,7 +198,7 @@ void loop() {
         EEPROM.write(LOC_SEQNUM+3,(uint8_t)((sequenceNumber & 0x000000ff)));
         //Serial.println(message, HEX);
         irsend.sendWhynter(message,32);
-        if (message == 0x8c002aa5) 
+        if (message & 0x80000000) 
           digitalWrite(LED_PIN, 1);
         else
           digitalWrite(LED_PIN, 0);
