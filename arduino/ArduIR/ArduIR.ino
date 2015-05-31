@@ -109,12 +109,13 @@ void setup()
 }
 
 void getTemp102() {
-  //uint8_t firstbyte, secondbyte;
+  // start a single one-shot temperateure conversion
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
   Wire.write(0x01); // write to config register
   Wire.write(0x80); // one-shot conversion
   Wire.write(0x00);
   Wire.endTransmission();
+  // ask to read the temperature register
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
   Wire.write(0x00); // read temp register
   Wire.endTransmission();
@@ -122,40 +123,42 @@ void getTemp102() {
   Wire.requestFrom(TMP102_I2C_ADDRESS, 2);
   boolean timeout = false;
   unsigned long t0 = millis();
+  // wait until 2 bytes show up on the TWI bus
   do {
     timeout = ((millis() - t0) > TIMEOUT_MILLIS);
   } while (Wire.available() != 2 && !timeout);
   if (!timeout) {
+    // read temperature as 2 8-bit words
     firstbyte      = (Wire.read());
     secondbyte     = (Wire.read());
 #ifdef DEBUG
     Serial.print(F("TMP ")); Serial.print(firstbyte, HEX); Serial.print(' '); Serial.println(secondbyte, HEX);
-    //uint16_t temp = ((uint16_t)firstbyte) << 4 | ((uint16_t)secondbyte) >> 4;
-    //firstbyte = (temp & 0xff00) >> 8;
-    //secondbyte = (temp & 0x00ff);
 #endif
-    //correctedtemp = (((uint16_t)(firstbyte) << 4)|((uint16_t)(secondbyte) >> 4)) * 0.0625;
   } else {
     firstbyte = 0xff; secondbyte = 0xff;
   }
 }
 
 void loop() {
+  // loop and poll for serial or radio data
   while (!radio.available() && !Serial.available()) ;
   if (Serial.available()) {
+    // if serial data, look for commands
     byte c = Serial.read();
     if (c == 'K' || c == 'k') {
+      // the 'K" command sets the key: 'k <low 32 bits, hex> <high 32 bits, hex>'
       Serial.readStringUntil(' ');
       s_key_lo = Serial.readStringUntil(' ');
       s_key_hi = Serial.readStringUntil(' ');
-      //Serial.print(F("key_lo=")); Serial.println(s_key_lo);
-      //Serial.print(F("key_hi=")); Serial.println(s_key_hi);
       key_lo = strtoul(s_key_lo.c_str(), NULL, 16);
+      // give feeback on serial
       Serial.print(F("key_lo_parsed=")); Serial.println(key_lo, HEX);
       key_hi = strtoul(s_key_hi.c_str(), NULL, 16);
       Serial.print(F("key_lo_parsed=")); Serial.println(key_hi, HEX);
+      // create new keeloq instance
       if (k) delete k;
       k = new Keeloq(key_lo, key_hi);
+      // write key to EEPROM
       EEPROM.write(LOC_KEY_LO, (uint8_t)((key_lo & 0xff000000) >> 24));
       EEPROM.write(LOC_KEY_LO + 1, (uint8_t)((key_lo & 0x00ff0000) >> 16));
       EEPROM.write(LOC_KEY_LO + 2, (uint8_t)((key_lo & 0x0000ff00) >> 8));
@@ -165,11 +168,13 @@ void loop() {
       EEPROM.write(LOC_KEY_HI + 2, (uint8_t)((key_hi & 0x0000ff00) >> 8));
       EEPROM.write(LOC_KEY_HI + 3, (uint8_t)((key_hi & 0x000000ff)));
     } else if (c == 'S' || c == 's') {
+      // the 'S' command sets the Keeloq sequence number: 's <sequence number (decimal)>'
       Serial.readStringUntil(' ');
       s_seq = Serial.readStringUntil(' ');
-      //Serial.print(F("seq=")); Serial.println(s_seq);
       sequenceNumber = strtoul(s_seq.c_str(), NULL, 10);
+      // give feedback on serial
       Serial.print(F("seq_parsed=")); Serial.println(sequenceNumber);
+      // store sequence number in EEPROM
       EEPROM.write(LOC_SEQNUM, (uint8_t)((sequenceNumber & 0xff000000) >> 24));
       EEPROM.write(LOC_SEQNUM + 1, (uint8_t)((sequenceNumber & 0x00ff0000) >> 16));
       EEPROM.write(LOC_SEQNUM + 2, (uint8_t)((sequenceNumber & 0x0000ff00) >> 8));
@@ -177,6 +182,7 @@ void loop() {
     }
   }
   if (radio.available()) {
+    // radio data come as 9 8-bit words: first word is the command, the remaining words are the operand
     radio.read(buffer, 10);
     Serial.print((int)buffer[0]);
 #ifdef DEBUG
@@ -187,24 +193,33 @@ void loop() {
 #endif
     Serial.println();
     if (buffer[0] == 1) {
+      // if command == 1, we are sending IR data. The operand is the 32-bit IR code followed by the 32-bit Keeloq code
+     
+      // build IR message
       message = ((uint32_t)buffer[1] << 24) | ((uint32_t)buffer[2] << 16) |
                 ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[4]);
+      // read encrypted remote sequence number
       encSequenceNumber = ((uint32_t)buffer[5] << 24) | ((uint32_t)buffer[6] << 16) |
                           ((uint32_t)buffer[7] << 8) | ((uint32_t)buffer[8]);
+      // decrypt remote sequence number
       decSequenceNumber = k->decrypt(encSequenceNumber);
+      // read local sequence number from EEPROM
       sequenceNumber = ((uint32_t)EEPROM.read(LOC_SEQNUM) << 24) | ((uint32_t)EEPROM.read(LOC_SEQNUM + 1) << 16) |
                        ((uint32_t)EEPROM.read(LOC_SEQNUM + 2) << 8) | ((uint32_t)EEPROM.read(LOC_SEQNUM + 3));
+      // command is valid only if the remote sequence number is within the 100 numbers following the local number
       if (decSequenceNumber >= sequenceNumber && decSequenceNumber < sequenceNumber + 100) {
 #ifdef DEBUG
         Serial.print(F("Sequence valid: internal=")); Serial.print(sequenceNumber); Serial.print(F(" received=")); Serial.println(decSequenceNumber);
 #endif
         sequenceNumber = decSequenceNumber + 1;
+        // increment local sequence number and store it in EEPROM
         EEPROM.write(LOC_SEQNUM, (uint8_t)((sequenceNumber & 0xff000000) >> 24));
         EEPROM.write(LOC_SEQNUM + 1, (uint8_t)((sequenceNumber & 0x00ff0000) >> 16));
         EEPROM.write(LOC_SEQNUM + 2, (uint8_t)((sequenceNumber & 0x0000ff00) >> 8));
         EEPROM.write(LOC_SEQNUM + 3, (uint8_t)((sequenceNumber & 0x000000ff)));
-        //Serial.println(message, HEX);
+        // send A/C IR code
         irsend.sendWhynter(message, 32);
+        // toggle visible LED based on the most significant bit of the code (1=on, 0=off)
         if (message & 0x80000000)
           digitalWrite(LED_PIN, 1);
         else
@@ -215,19 +230,25 @@ void loop() {
 #endif
       }
     } else if (buffer[0] == 2) {
+      // if command == 1, the remote asked for temperature read
+
       radio.stopListening();
+      // quickly cycle visible LED as a form of acknowledgement
       digitalWrite(LED_PIN, 1);
       delay(100);
       digitalWrite(LED_PIN, 0);
+      // read temperature
       getTemp102();
       buffer[0] = firstbyte;
       buffer[1] = secondbyte;
+      // pad with b10101010 to maximize the payload "complexity"
       buffer[2] = 0xAA;
       buffer[3] = 0xAA;
       buffer[4] = 0xAA;
 #ifdef DEBUG
       Serial.print(F("RTMP ")); Serial.print(buffer[0], HEX); Serial.print(' '); Serial.println(buffer[1], HEX);
 #endif
+      //send back temperature payload
       radio.write(buffer, 5);
       radio.startListening();
     }
