@@ -235,10 +235,10 @@ void loop() {
       radio.stopListening();
       // quickly cycle visible LED as a form of acknowledgement
       digitalWrite(LED_PIN, 1);
-      delay(100);
+      getTemp102();
+      delay(70);
       digitalWrite(LED_PIN, 0);
       // read temperature
-      getTemp102();
       buffer[0] = firstbyte;
       buffer[1] = secondbyte;
       // pad with b10101010 to maximize the payload "complexity"
