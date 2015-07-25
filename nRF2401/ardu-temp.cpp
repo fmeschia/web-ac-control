@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <cstring>
 #include <sys/mman.h>
-#include <RF24/RF24.h>
-//#include "Nrf2401.h"
+#include <bcm2835.h>
+#include "Nrf2401.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ using namespace std;
 #define TIMEOUT_MS 1000.0
 
 const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
-uint8_t buffer[6];
+uint8_t buffer[10];
 
 int main(int argc, char* argv[])
 {
@@ -35,34 +35,27 @@ int main(int argc, char* argv[])
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &sp);
 	mlockall(MCL_CURRENT | MCL_FUTURE);
+
+    Nrf2401 radio;
+    radio.remoteAddress = 1;
+	radio.localAddress = 2;
 	
-	RF24 radio(RPI_BPLUS_GPIO_J8_22,RPI_BPLUS_GPIO_J8_24, BCM2835_SPI_SPEED_4MHZ);
-	radio.begin();
-	//delay(10);
-	radio.setRetries(15,15);
-	//radio.setDataRate(RF24_250KBPS);
-	//radio.setPayloadSize(5);
-    radio.openWritingPipe(pipes[0]);
-    radio.openReadingPipe(1,pipes[1]);
-#ifdef DEBUG
-	radio.printDetails();
-#endif
 	int ntries = 0;
 	int done = 0;
 	int timeout = 0;
 	do {
-		//radio.txMode(5);
+		radio.txMode(10);
 		buffer[0]=(uint8_t)2;
 		buffer[1]=(uint8_t)0;
 		buffer[2]=(uint8_t)0;
 		buffer[3]=(uint8_t)0;
 		buffer[4]=(uint8_t)0;
-		radio.write(buffer, 5);
+		radio.write(buffer);
 #ifdef DEBUG
 		cout << "Wrote" << endl;
 #endif
-	//	delay(10);
-		radio.startListening();
+		delay(10);
+		radio.rxMode(10);
 	//	delay(5);
 #ifdef DEBUG
 		cout << "Listening" << endl;
@@ -75,7 +68,7 @@ int main(int argc, char* argv[])
 #ifdef DEBUG
 				cout << "Available" << endl;
 #endif
-				radio.read(buffer, 5);
+				radio.read(buffer);
 #ifdef DEBUG
 				cout << "Read" << endl;
 				std::cout << (int)buffer[0] << " - " << (int)buffer[1] << " - " << (int)buffer[2] << " - " << (int)buffer[3] << " - " << (int)buffer[4] << std::endl;
@@ -95,7 +88,6 @@ int main(int argc, char* argv[])
 			*/
 			timeout = ((time(0)-time0) * 1000.0 > TIMEOUT_MS);
 		} while (!done && !timeout);
-		radio.stopListening();
 	} while (!done && ntries++ < MAX_TRIES);
 	if (done) {
 		float temp = ((((uint16_t)buffer[0]) << 4 | ((uint16_t)buffer[1]) >> 4)*0.0625)+TEMP_OFFSET_C;
@@ -103,6 +95,5 @@ int main(int argc, char* argv[])
     } else {
 		std::cout << "Timeout" << std::endl;
     }
-    radio.powerDown();
     return 0;
 }

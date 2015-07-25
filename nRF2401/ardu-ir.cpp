@@ -2,7 +2,7 @@
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
-#include <RF24/RF24.h>
+#include "Nrf2401.h"
 #include "Keeloq.h"
 
 #undef DEBUG
@@ -48,15 +48,12 @@ int main(int argc, char* argv[])
 	std::cout << "Key " << std::hex << key_lo << " " << std::hex << key_hi << std::endl;
 #endif
 	Keeloq k(key_lo,key_hi);
-	RF24 radio(RPI_BPLUS_GPIO_J8_22,RPI_BPLUS_GPIO_J8_24, BCM2835_SPI_SPEED_4MHZ);
-	radio.begin();
-	radio.setRetries(15,15);
-//	radio.setDataRate(RF24_250KBPS);
-//	radio.setPayloadSize(10);
-    radio.openWritingPipe(pipes[0]);
-#ifdef DEBUG
-	radio.printDetails();
-#endif
+	
+    Nrf2401 radio;
+    radio.remoteAddress = 1;
+	radio.localAddress = 2;
+	radio.txMode(10);
+	
 	buffer[0]=(unsigned char)1;
 	buffer[1]=(unsigned char)((code & 0xff000000) >> 24);
 	buffer[2]=(unsigned char)((code & 0x00ff0000) >> 16);
@@ -67,10 +64,9 @@ int main(int argc, char* argv[])
 	buffer[6]=(unsigned char)((encSequence & 0x00ff0000) >> 16);
 	buffer[7]=(unsigned char)((encSequence & 0x0000ff00) >> 8);
 	buffer[8]=(unsigned char)((encSequence & 0x000000ff));
-	radio.write(buffer,9);
+	radio.write(buffer);
 	//std::cout << (int)radio.data[0] << " - " << (int)radio.data[1] << ":" << (int)radio.data[2] << ":" << (int)radio.data[3] << ":" << (int)radio.data[4] << std::endl;
 	//std::cout << "sizeof(unsigned long) is " << sizeof(code) << " bytes " << std::endl;
-	radio.powerDown();
 	myfile.open (strcat(basepath,"/sequence.txt"), std::fstream::out | std::fstream::trunc);
 	myfile << std::dec << (sequence+1) << std::endl;
 	myfile.close();
