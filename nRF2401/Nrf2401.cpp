@@ -57,6 +57,12 @@ Nrf2401::~Nrf2401()
 	DESELECT_CHIP;
 }
 
+void Nrf2401::powerDown(void)
+{
+    DISABLE_CHIP;
+    DESELECT_CHIP;
+}
+
 void Nrf2401::rxMode(unsigned char messageSize)
 {
   bcm2835_gpio_fsel(DAT_PIN, BCM2835_GPIO_FSEL_OUTP);
@@ -74,6 +80,7 @@ void Nrf2401::txMode(unsigned char messageSize)
   mode = 0;
   if(messageSize) payloadSize = messageSize, configure();
   else configuration[14] &= ~1, loadConfiguration(true);
+  DISABLE_CHIP;
   _delay_us(250);
 }
 

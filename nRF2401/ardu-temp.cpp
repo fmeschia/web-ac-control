@@ -50,13 +50,13 @@ int main(int argc, char* argv[])
 		buffer[2]=(uint8_t)0;
 		buffer[3]=(uint8_t)0;
 		buffer[4]=(uint8_t)0;
+		delay(1);
 		radio.write(buffer);
 #ifdef DEBUG
 		cout << "Wrote" << endl;
 #endif
-		delay(10);
 		radio.rxMode(10);
-	//	delay(5);
+		delay(1);
 #ifdef DEBUG
 		cout << "Listening" << endl;
 #endif
@@ -95,5 +95,6 @@ int main(int argc, char* argv[])
     } else {
 		std::cout << "Timeout" << std::endl;
     }
+    radio.powerDown();
     return 0;
 }

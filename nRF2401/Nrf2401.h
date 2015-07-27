@@ -64,6 +64,7 @@ class Nrf2401
   
   Nrf2401(void);
   ~Nrf2401();
+  void powerDown(void);
   void rxMode(unsigned char messageSize=0);
   void txMode(unsigned char messageSize=0);
   void write(unsigned char dataByte);

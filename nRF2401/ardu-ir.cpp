@@ -70,5 +70,6 @@ int main(int argc, char* argv[])
 	myfile.open (strcat(basepath,"/sequence.txt"), std::fstream::out | std::fstream::trunc);
 	myfile << std::dec << (sequence+1) << std::endl;
 	myfile.close();
+    radio.powerDown();
     return 0;
 }

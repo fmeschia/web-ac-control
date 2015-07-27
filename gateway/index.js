@@ -80,7 +80,7 @@ app.get('/tempdata.csv', function(req,res) {
  	var csv = "Time,Temperature\n";
 	var y = [];
 	connection.connect();
-	var query = 'SELECT date, temp FROM temperature where TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) < 86400';
+	var query = 'SELECT date, temp FROM temperature where TIME_TO_SEC(TIMEDIFF(SYSDATE(),date)) < 2*86400';
 	connection.query(query, function(err, rows, fields) {	
 		for (var i=0; i<rows.length; i++) {
 			csv += rows[i].date + "," + (parseFloat(rows[i].temp)*1.8+32.0) + '\n';
@@ -104,7 +104,7 @@ io.on('connection', function(socket){
   	socket.on('turnon', function(msg){
 		logger.info('Turning ON');
 		// code = turn ON, fan 1, 74 F, A/C
-		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0xce002aaf'],{cwd:__dirname+'/../nRF2401/'});
+		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0xea002aa1'],{cwd:__dirname+'/../nRF2401/'});
   	});
   	socket.on('turnoff', function(msg){
 		logger.info('Turning OFF');
