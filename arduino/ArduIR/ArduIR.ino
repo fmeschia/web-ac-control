@@ -18,6 +18,21 @@ sequence seed can be changed by sending, respectively, a
 "k <low 32 bits of the key, HEX> <high 32 bits of the key, HEX>"
 or a "s <sequence seed, DEC>" command over the serial link.
 
+================================
+Copyright 2015 Francesco Meschia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 *****/
 
 #include <IRremote.h>
@@ -52,8 +67,7 @@ uint8_t buffer[10];
 String s_key_lo, s_key_hi, s_seq;
 uint32_t key_lo, key_hi;
 
-//const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
-const uint64_t pipes[2] = { 0xEADFD40001LL, 0xEADFD40002LL };
+const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
 
 void setup()
 {
@@ -101,8 +115,6 @@ void setup()
   // initialize nRF2401 radio module
   radio.begin();
   radio.setRetries(15, 15);
-  radio.setAutoAck(false);
-  radio.setPayloadSize(10);
   radio.openWritingPipe(pipes[1]);
   radio.openReadingPipe(1, pipes[0]);
   radio.startListening();
@@ -238,10 +250,10 @@ void loop() {
       radio.stopListening();
       // quickly cycle visible LED as a form of acknowledgement
       digitalWrite(LED_PIN, 1);
-      delay(100);
+      getTemp102();
+      delay(70);
       digitalWrite(LED_PIN, 0);
       // read temperature
-      getTemp102();
       buffer[0] = firstbyte;
       buffer[1] = secondbyte;
       // pad with b10101010 to maximize the payload "complexity"

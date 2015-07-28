@@ -1,10 +1,8 @@
-/*****
+This repository contains the sources for a system to control a
+Whynter ARC-110D portable air conditioner unit via the web, through
+Raspberry Pi and Arduino hardware.
 
-Web A/C Remote Control - the Arduino remote
-by Francesco Meschia
-
-================================
-Copyright 2015 Francesco Meschia
+Unless otherwise specified, the following license applies to all files:
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,20 +16,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-*/
-
-{
-  "name": "gateway",
-  "version": "0.0.1",
-  "description": "my first socket.io app",
-  "dependencies": {
-    "basic-auth": "^1.0.0",
-    "express": "^4.11.0",
-    "express-session": "^1.10.1",
-    "log4js": "^0.6.22",
-    "mysql": "^2.5.4",
-    "plotly": "^0.2.15",
-    "socket.io": "^1.2.1",
-    "socket.io-session": "0.0.5"
-  }
-}
