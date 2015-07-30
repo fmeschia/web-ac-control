@@ -43,11 +43,13 @@ limitations under the License.
 #include <printf.h>
 #include <EEPROM.h>
 #include "Keeloq.h"
-
+#include "PinChangeInt.h"
+#include <avr/sleep.h>
 #define DEBUG
 
 #define TMP102_I2C_ADDRESS 72
 #define TIMEOUT_MILLIS 100L
+#define SLEEP_TIMEOUT 8000L
 #define LED_PIN 8
 
 #define LOC_SEQNUM 0x00
@@ -66,6 +68,7 @@ int8_t firstbyte, secondbyte;
 uint8_t buffer[10];
 String s_key_lo, s_key_hi, s_seq;
 uint32_t key_lo, key_hi;
+unsigned long lastWakeupTime;
 
 const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
 
@@ -106,12 +109,12 @@ void setup()
   // print TMP102 diagnostic information if in debug mode
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
   Wire.write(0x01);
+  Wire.endTransmission();
   Wire.requestFrom(TMP102_I2C_ADDRESS, 2);
   byte firstbyte      = (Wire.read());
   byte secondbyte     = (Wire.read());
   Serial.print(F("TMP102 CFG ")); Serial.print(firstbyte, HEX); Serial.print(F(" ")); Serial.println(secondbyte, HEX);
 #endif
-  
   // initialize nRF2401 radio module
   radio.begin();
   radio.setRetries(15, 15);
@@ -121,6 +124,7 @@ void setup()
 #ifdef DEBUG
   radio.printDetails();
 #endif
+  sleepNow();
 }
 
 void getTemp102() {
@@ -154,10 +158,31 @@ void getTemp102() {
   }
 }
 
+void WakeHandler()
+{
+  sleep_disable();
+  PCintPort::detachInterrupt(0);
+  PCintPort::detachInterrupt(2);  
+}
+
+void sleepNow() {
+  Serial.println(F("Sleep..."));
+  Serial.flush();
+  pinMode(0, INPUT_PULLUP);
+  sleep_enable();
+  PCintPort::attachInterrupt(0, &WakeHandler, CHANGE);
+  PCintPort::attachInterrupt(2, &WakeHandler, LOW);
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_mode();
+  sleep_disable(); 
+  Serial.begin(9600);
+  Serial.println(F("Awake!"));
+}
+
+
 void loop() {
-  // loop and poll for serial or radio data
-  while (!radio.available() && !Serial.available()) ;
   if (Serial.available()) {
+    lastWakeupTime = millis();
     // if serial data, look for commands
     byte c = Serial.read();
     if (c == 'K' || c == 'k') {
@@ -195,6 +220,7 @@ void loop() {
       EEPROM.write(LOC_SEQNUM + 2, (uint8_t)((sequenceNumber & 0x0000ff00) >> 8));
       EEPROM.write(LOC_SEQNUM + 3, (uint8_t)((sequenceNumber & 0x000000ff)));
     }
+    while (Serial.available()) Serial.read();
   }
   if (radio.available()) {
     // radio data come as 9 8-bit words: first word is the command, the remaining words are the operand
@@ -267,5 +293,9 @@ void loop() {
       radio.write(buffer, 5);
       radio.startListening();
     }
+  }
+  if (millis() - lastWakeupTime > SLEEP_TIMEOUT) {
+    sleepNow();
+    lastWakeupTime = millis();
   }
 }
