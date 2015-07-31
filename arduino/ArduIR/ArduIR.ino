@@ -42,9 +42,10 @@ limitations under the License.
 #include <RF24.h>
 #include <printf.h>
 #include <EEPROM.h>
-#include "Keeloq.h"
-#include "PinChangeInt.h"
 #include <avr/sleep.h>
+#include <avr/power.h>
+#include "Keeloq.h"
+
 #define DEBUG
 
 #define TMP102_I2C_ADDRESS 72
@@ -93,11 +94,11 @@ void setup()
 #ifdef DEBUG
   Serial.print(F("seq=")); Serial.println(sequenceNumber);
 #endif
-  
+
   // initialize Keeloq generator
   k = new Keeloq(key_lo, key_hi);
   printf_begin();
-  
+
   // initialize TMP102 temperature sensor
   Wire.begin();
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
@@ -158,24 +159,51 @@ void getTemp102() {
   }
 }
 
-void WakeHandler()
-{
-  sleep_disable();
-  PCintPort::detachInterrupt(0);
-  PCintPort::detachInterrupt(2);  
+ISR (PCINT2_vect) {
+}
+
+
+void WakeHandler() {
 }
 
 void sleepNow() {
   Serial.println(F("Sleep..."));
   Serial.flush();
-  pinMode(0, INPUT_PULLUP);
+
+  noInterrupts ();
+
+  byte old_ADCSRA = ADCSRA;
+  // disable ADC
+  ADCSRA = 0;
+  // pin change interrupt (example for D0)
+  PCMSK2 |= bit (PCINT16); // want pin 0
+  PCIFR  |= bit (PCIF2);   // clear any outstanding interrupts
+  PCICR  |= bit (PCIE2);   // enable pin change interrupts for D0 to D7
+  attachInterrupt(0, &WakeHandler, LOW);
+
+  set_sleep_mode (SLEEP_MODE_PWR_DOWN);
+  power_adc_disable();
+  power_spi_disable();
+  power_timer0_disable();
+  power_timer1_disable();
+  power_timer2_disable();
+  power_twi_disable();
+
+  UCSR0B &= ~bit (RXEN0);  // disable receiver
+  UCSR0B &= ~bit (TXEN0);  // disable transmitter
+
   sleep_enable();
-  PCintPort::attachInterrupt(0, &WakeHandler, CHANGE);
-  PCintPort::attachInterrupt(2, &WakeHandler, LOW);
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_mode();
-  sleep_disable(); 
-  Serial.begin(9600);
+  interrupts ();
+  sleep_cpu ();
+  sleep_disable();
+  power_all_enable();
+
+  ADCSRA = old_ADCSRA;
+  PCICR  &= ~bit (PCIE2);   // disable pin change interrupts for D0 to D7
+  detachInterrupt(0);
+  UCSR0B |= bit (RXEN0);  // enable receiver
+  UCSR0B |= bit (TXEN0);  // enable transmitter
+
   Serial.println(F("Awake!"));
 }
 
@@ -235,7 +263,7 @@ void loop() {
     Serial.println();
     if (buffer[0] == 1) {
       // if command == 1, we are sending IR data. The operand is the 32-bit IR code followed by the 32-bit Keeloq code
-     
+
       // build IR message
       message = ((uint32_t)buffer[1] << 24) | ((uint32_t)buffer[2] << 16) |
                 ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[4]);
