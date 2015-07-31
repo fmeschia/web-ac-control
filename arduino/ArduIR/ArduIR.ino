@@ -170,8 +170,8 @@ void sleepNow() {
   Serial.println(F("Sleep..."));
   Serial.flush();
 
+  // pin change interrupt code by Nick Gammon
   noInterrupts ();
-
   byte old_ADCSRA = ADCSRA;
   // disable ADC
   ADCSRA = 0;
