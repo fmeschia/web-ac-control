@@ -127,12 +127,12 @@ io.on('connection', function(socket){
 	}
   	socket.on('turnon', function(msg){
 		logger.info('Turning ON');
-		// code = turn ON, fan 1, 74 F, A/C
-		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0xce002aaf'],{cwd:__dirname+'/../nRF2401/'});
+		// code = turn ON, fan auto, 70 F, A/C
+		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0xea002aa1'],{cwd:__dirname+'/../nRF2401/'});
   	});
   	socket.on('turnoff', function(msg){
 		logger.info('Turning OFF');
-		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0x4e002aa7'],{cwd:__dirname+'/../nRF2401/'});
+		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0x4a002aab'],{cwd:__dirname+'/../nRF2401/'});
   	});
   	socket.on('readtemp', function(msg){
   		logger.info('Reading temperature');
