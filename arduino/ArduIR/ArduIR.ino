@@ -205,12 +205,12 @@ void sleepNow() {
   UCSR0B |= bit (TXEN0);  // enable transmitter
 
   Serial.println(F("Awake!"));
+  lastWakeupTime = millis();
 }
 
 
 void loop() {
   if (Serial.available()) {
-    lastWakeupTime = millis();
     // if serial data, look for commands
     byte c = Serial.read();
     if (c == 'K' || c == 'k') {
@@ -324,6 +324,5 @@ void loop() {
   }
   if (millis() - lastWakeupTime > SLEEP_TIMEOUT) {
     sleepNow();
-    lastWakeupTime = millis();
   }
 }
