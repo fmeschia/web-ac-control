@@ -19,9 +19,4 @@ The RF24 library by TMRh20 (https://github.com/TMRh20/RF24) must be compiled and
 
 HOW TO COMPILE
 --------------
-ardu-ir:
-    g++ -lrf24-bcm ardu-ir.cpp Keeloq.cpp -o ardu-ir
-
-ardu-temp:
-    g++ -lrf24-bcm ardu-temp.cpp -o ardu-temp
-
+Just issue the make command
