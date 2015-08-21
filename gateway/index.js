@@ -132,7 +132,7 @@ io.on('connection', function(socket){
   	});
   	socket.on('turnoff', function(msg){
 		logger.info('Turning OFF');
-		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0x4a002aab'],{cwd:__dirname+'/../nRF2401/'});
+		exec.execFile(__dirname+ '/../nRF2401/ardu-ir',['0x6a002aa9'],{cwd:__dirname+'/../nRF2401/'});
   	});
   	socket.on('readtemp', function(msg){
   		logger.info('Reading temperature');

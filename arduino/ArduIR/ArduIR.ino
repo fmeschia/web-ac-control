@@ -251,6 +251,7 @@ void loop() {
     while (Serial.available()) Serial.read();
   }
   if (radio.available()) {
+    lastWakeupTime -= SLEEP_TIMEOUT;
     // radio data come as 9 8-bit words: first word is the command, the remaining words are the operand
     radio.read(buffer, 10);
     Serial.print((int)buffer[0]);
