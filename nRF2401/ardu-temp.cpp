@@ -36,7 +36,7 @@ using namespace std;
 #undef DEBUG
 //#define DEBUG
 
-#define TEMP_OFFSET_C -1.65
+#define TEMP_OFFSET_C 0.0
 #define MAX_TRIES 5
 #define TIMEOUT_MS 1000.0
 
