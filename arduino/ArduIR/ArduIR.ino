@@ -42,12 +42,15 @@ limitations under the License.
 #include <RF24.h>
 #include <printf.h>
 #include <EEPROM.h>
+#include <avr/sleep.h>
+#include <avr/power.h>
 #include "Keeloq.h"
 
 #define DEBUG
 
 #define TMP102_I2C_ADDRESS 72
 #define TIMEOUT_MILLIS 100L
+#define SLEEP_TIMEOUT 8000L
 #define LED_PIN 8
 
 #define LOC_SEQNUM 0x00
@@ -66,6 +69,7 @@ int8_t firstbyte, secondbyte;
 uint8_t buffer[10];
 String s_key_lo, s_key_hi, s_seq;
 uint32_t key_lo, key_hi;
+unsigned long lastWakeupTime;
 
 const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
 
@@ -90,11 +94,11 @@ void setup()
 #ifdef DEBUG
   Serial.print(F("seq=")); Serial.println(sequenceNumber);
 #endif
-  
+
   // initialize Keeloq generator
   k = new Keeloq(key_lo, key_hi);
   printf_begin();
-  
+
   // initialize TMP102 temperature sensor
   Wire.begin();
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
@@ -106,12 +110,12 @@ void setup()
   // print TMP102 diagnostic information if in debug mode
   Wire.beginTransmission(TMP102_I2C_ADDRESS);
   Wire.write(0x01);
+  Wire.endTransmission();
   Wire.requestFrom(TMP102_I2C_ADDRESS, 2);
   byte firstbyte      = (Wire.read());
   byte secondbyte     = (Wire.read());
   Serial.print(F("TMP102 CFG ")); Serial.print(firstbyte, HEX); Serial.print(F(" ")); Serial.println(secondbyte, HEX);
 #endif
-  
   // initialize nRF2401 radio module
   radio.begin();
   radio.setRetries(15, 15);
@@ -121,6 +125,7 @@ void setup()
 #ifdef DEBUG
   radio.printDetails();
 #endif
+  sleepNow();
 }
 
 void getTemp102() {
@@ -154,10 +159,58 @@ void getTemp102() {
   }
 }
 
+ISR (PCINT2_vect) {
+}
+
+
+void WakeHandler() {
+}
+
+void sleepNow() {
+  Serial.println(F("Sleep..."));
+  Serial.flush();
+
+  // pin change interrupt code by Nick Gammon
+  noInterrupts ();
+  byte old_ADCSRA = ADCSRA;
+  // disable ADC
+  ADCSRA = 0;
+  // pin change interrupt (example for D0)
+  PCMSK2 |= bit (PCINT16); // want pin 0
+  PCIFR  |= bit (PCIF2);   // clear any outstanding interrupts
+  PCICR  |= bit (PCIE2);   // enable pin change interrupts for D0 to D7
+  attachInterrupt(0, &WakeHandler, LOW);
+
+  set_sleep_mode (SLEEP_MODE_PWR_DOWN);
+  power_adc_disable();
+  power_spi_disable();
+  power_timer0_disable();
+  power_timer1_disable();
+  power_timer2_disable();
+  power_twi_disable();
+
+  UCSR0B &= ~bit (RXEN0);  // disable receiver
+  UCSR0B &= ~bit (TXEN0);  // disable transmitter
+
+  sleep_enable();
+  interrupts ();
+  sleep_cpu ();
+  sleep_disable();
+  power_all_enable();
+
+  ADCSRA = old_ADCSRA;
+  PCICR  &= ~bit (PCIE2);   // disable pin change interrupts for D0 to D7
+  detachInterrupt(0);
+  UCSR0B |= bit (RXEN0);  // enable receiver
+  UCSR0B |= bit (TXEN0);  // enable transmitter
+
+  Serial.println(F("Awake!"));
+}
+
+
 void loop() {
-  // loop and poll for serial or radio data
-  while (!radio.available() && !Serial.available()) ;
   if (Serial.available()) {
+    lastWakeupTime = millis();
     // if serial data, look for commands
     byte c = Serial.read();
     if (c == 'K' || c == 'k') {
@@ -195,6 +248,7 @@ void loop() {
       EEPROM.write(LOC_SEQNUM + 2, (uint8_t)((sequenceNumber & 0x0000ff00) >> 8));
       EEPROM.write(LOC_SEQNUM + 3, (uint8_t)((sequenceNumber & 0x000000ff)));
     }
+    while (Serial.available()) Serial.read();
   }
   if (radio.available()) {
     // radio data come as 9 8-bit words: first word is the command, the remaining words are the operand
@@ -209,7 +263,7 @@ void loop() {
     Serial.println();
     if (buffer[0] == 1) {
       // if command == 1, we are sending IR data. The operand is the 32-bit IR code followed by the 32-bit Keeloq code
-     
+
       // build IR message
       message = ((uint32_t)buffer[1] << 24) | ((uint32_t)buffer[2] << 16) |
                 ((uint32_t)buffer[3] << 8) | ((uint32_t)buffer[4]);
@@ -267,5 +321,9 @@ void loop() {
       radio.write(buffer, 5);
       radio.startListening();
     }
+  }
+  if (millis() - lastWakeupTime > SLEEP_TIMEOUT) {
+    sleepNow();
+    lastWakeupTime = millis();
   }
 }
